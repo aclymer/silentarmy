@@ -142,7 +142,9 @@ cl_mem check_clCreateBuffer(cl_context ctx, cl_mem_flags flags, size_t size,
     cl_mem	ret;
     ret = clCreateBuffer(ctx, flags, size, host_ptr, &status);
     if (status != CL_SUCCESS || !ret)
-  fatal("clCreateBuffer (%d)\n", status);
+      fatal("clCreateBuffer (%d)\n", status);
+    if ((int)status == -61)
+      fatal("Unable to load full HashTable into memory.", status);
     return ret;
 }
 
