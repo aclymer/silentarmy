@@ -57,6 +57,7 @@
 
 // An (uncompressed) solution stores (1 << PARAM_K) 32-bit values
 #define SOL_SIZE			((1 << PARAM_K) * 4)
+
 typedef struct	sols_s
 {
     uint	nr;

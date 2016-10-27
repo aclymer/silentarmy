@@ -1,3 +1,4 @@
+#pragma comment(lib, "OpenCL.lib")
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -5,19 +6,27 @@
 #include <stdint.h>
 #include <assert.h>
 #include <sys/types.h>
-#include <time.h>
+#include <winsock.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <time.h>
 #include <io.h>
 #include "getopt.h"
 #include <errno.h>
 #include <CL/cl.h>
 #include "blake.h"
+#include <basetsd.h>
 
 typedef uint8_t		uchar;
 typedef uint32_t	uint;
 typedef uint64_t	ulong;
 #include "param.h"
+
+#if defined(_MSC_VER) || defined(_MSC_EXTENSIONS)
+#define DELTA_EPOCH_IN_MICROSECS  11644473600000000Ui64
+#else
+#define DELTA_EPOCH_IN_MICROSECS  11644473600000000ULL
+#endif
 
 #define MIN(A, B)	(((A) < (B)) ? (A) : (B))
 #define MAX(A, B)	(((A) > (B)) ? (A) : (B))
@@ -71,9 +80,50 @@ uint64_t parse_num(char *str)
     return n;
 }
 
+struct timezone 
+{
+  int  tz_minuteswest; /* minutes W of Greenwich */
+  int  tz_dsttime;     /* type of dst correction */
+};
+
+int gettimeofday(struct timeval *tv, struct timezone *tz)
+{
+  FILETIME ft;
+  unsigned __int64 tmpres = 0;
+  static int tzflag;
+
+  if (NULL != tv)
+  {
+    GetSystemTimeAsFileTime(&ft);
+
+    tmpres |= ft.dwHighDateTime;
+    tmpres <<= 32;
+    tmpres |= ft.dwLowDateTime;
+
+    /*converting file time to unix epoch*/
+    tmpres -= DELTA_EPOCH_IN_MICROSECS; 
+    tmpres /= 10;  /*convert into microseconds*/
+    tv->tv_sec = (long)(tmpres / 1000000UL);
+    tv->tv_usec = (long)(tmpres % 1000000UL);
+  }
+
+  if (NULL != tz)
+  {
+    if (!tzflag)
+    {
+      _tzset();
+      tzflag++;
+    }
+    tz->tz_minuteswest = _timezone / 60;
+    tz->tz_dsttime = _daylight;
+  }
+
+  return 0;
+}
+
 uint64_t now(void)
 {
-    struct timeval	tv;
+    struct timeval tv;
     gettimeofday(&tv, NULL);
     return (uint64_t)tv.tv_sec * 1000 * 1000 + tv.tv_usec;
 }
@@ -168,8 +218,8 @@ void load_file(const char *fname, char **dat, size_t *dat_len)
 {
     struct stat	st;
     int		fd;
-    ssize_t	ret;
-    if (-1 == (fd = open(fname, O_RDONLY)))
+    SSIZE_T	ret;
+    if (-1 == (fd = open(fname, O_BINARY)))
   fatal("%s: %s\n", fname, strerror(errno));
     if (fstat(fd, &st))
   fatal("fstat: %s: %s\n", fname, strerror(errno));
@@ -204,7 +254,7 @@ void get_program_build_log(cl_program program, cl_device_id device)
 void dump(const char *fname, void *data, size_t len)
 {
     int			fd;
-    ssize_t		ret;
+    SSIZE_T		ret;
     if (-1 == (fd = open(fname, O_WRONLY | O_CREAT | O_TRUNC, 0666)))
   fatal("%s: %s\n", fname, strerror(errno));
     ret = write(fd, data, len);
@@ -512,7 +562,7 @@ void print_sol(uint32_t *values, uint64_t *nonce)
     fprintf(stderr, "Soln:");
     // for brievity, only print "small" nonces
     if (*nonce < (1UL << 32))
-  fprintf(stderr, " 0x%lx:", *nonce);
+  fprintf(stderr, " 0x%I64x:", *nonce);
     for (unsigned i = 0; i < show_n_sols; i++)
   fprintf(stderr, " %x", values[i]);
     fprintf(stderr, "%s\n", (show_n_sols != (1 << PARAM_K) ? "..." : ""));
@@ -598,7 +648,7 @@ uint32_t verify_sol(sols_t *sols, unsigned sol_i)
 {
     uint32_t	*inputs = sols->values[sol_i];
     uint32_t	seen_len = (1 << (PREFIX + 1)) / 8;
-    uint8_t	seen[seen_len];
+    uint8_t	seen[262144UL];
     uint32_t	i;
     uint8_t	tmp;
     // look for duplicate inputs
@@ -767,7 +817,7 @@ void run_opencl(uint8_t *header, size_t header_len, cl_context ctx,
   total += solve_equihash(ctx, queue, k_init_ht, k_rounds, k_sols, buf_ht,
     buf_sols, buf_dbg, dbg_size, header, header_len, nonce);
     uint64_t t1 = now();
-    fprintf(stderr, "Total %ld solutions in %.1f ms (%.1f Sol/s)\n",
+    fprintf(stderr, "Total %I64d solutions in %.1f ms (%.1f Sol/s)\n",
       total, (t1 - t0) / 1e3, total / ((t1 - t0) / 1e6));
     // Clean up
     if (dbg)
@@ -838,8 +888,7 @@ void init_and_run_opencl(uint8_t *header, size_t header_len)
     char *source;
     size_t source_len;
     load_file("kernel.cl", &source, &source_len);
-    program = clCreateProgramWithSource(context, 1, (const char **)&source,
-      &source_len, &status);
+    program = clCreateProgramWithSource(context, 1, (const char **)&source, &source_len, &status);
     if (status != CL_SUCCESS || !program)
   fatal("clCreateProgramWithSource (%d)\n", status);
     /* Build program. */
