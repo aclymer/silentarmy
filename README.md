@@ -1,5 +1,7 @@
 # SILENTARMY
 
+**This is my port of mbevand's SILENTARMY Zcash GPU miner to Visual Studio**
+
 SILENTARMY is an OpenCL GPU Zcash Equihash solver. It runs best on AMD GPUs
 and implements the CLI API described in the
 [Zcash open source miner challenge](https://zcashminers.org/rules).
