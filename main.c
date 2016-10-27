@@ -5,11 +5,11 @@
 #include <stdint.h>
 #include <assert.h>
 #include <sys/types.h>
-#include <sys/time.h>
+#include <time.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <unistd.h>
-#include <getopt.h>
+#include <io.h>
+#include "getopt.h"
 #include <errno.h>
 #include <CL/cl.h>
 #include "blake.h"
@@ -67,7 +67,7 @@ uint64_t parse_num(char *str)
     uint64_t	n;
     n = strtoul(str, &endptr, 0);
     if (endptr == str || *endptr)
-	fatal("'%s' is not a valid number\n", str);
+  fatal("'%s' is not a valid number\n", str);
     return n;
 }
 
@@ -86,13 +86,13 @@ void show_time(uint64_t t0)
 }
 
 cl_mem check_clCreateBuffer(cl_context ctx, cl_mem_flags flags, size_t size,
-	void *host_ptr)
+  void *host_ptr)
 {
     cl_int	status;
     cl_mem	ret;
     ret = clCreateBuffer(ctx, flags, size, host_ptr, &status);
     if (status != CL_SUCCESS || !ret)
-	fatal("clCreateBuffer (%d)\n", status);
+  fatal("clCreateBuffer (%d)\n", status);
     return ret;
 }
 
@@ -101,31 +101,31 @@ void check_clSetKernelArg(cl_kernel k, cl_uint a_pos, cl_mem *a)
     cl_int	status;
     status = clSetKernelArg(k, a_pos, sizeof (*a), a);
     if (status != CL_SUCCESS)
-	fatal("clSetKernelArg (%d)\n", status);
+  fatal("clSetKernelArg (%d)\n", status);
 }
 
 void check_clEnqueueNDRangeKernel(cl_command_queue queue, cl_kernel k, cl_uint
-	work_dim, const size_t *global_work_offset, const size_t
-	*global_work_size, const size_t *local_work_size, cl_uint
-	num_events_in_wait_list, const cl_event *event_wait_list, cl_event
-	*event)
+  work_dim, const size_t *global_work_offset, const size_t
+  *global_work_size, const size_t *local_work_size, cl_uint
+  num_events_in_wait_list, const cl_event *event_wait_list, cl_event
+  *event)
 {
     cl_uint	status;
     status = clEnqueueNDRangeKernel(queue, k, work_dim, global_work_offset,
-	    global_work_size, local_work_size, num_events_in_wait_list,
-	    event_wait_list, event);
+      global_work_size, local_work_size, num_events_in_wait_list,
+      event_wait_list, event);
     if (status != CL_SUCCESS)
-	    fatal("clEnqueueNDRangeKernel (%d)\n", status);
+      fatal("clEnqueueNDRangeKernel (%d)\n", status);
 }
 
 void check_clEnqueueReadBuffer(cl_command_queue queue, cl_mem buffer, cl_bool
-	blocking_read, size_t offset, size_t size, void *ptr, cl_uint
-	num_events_in_wait_list, const cl_event *event_wait_list, cl_event
-	*event)
+  blocking_read, size_t offset, size_t size, void *ptr, cl_uint
+  num_events_in_wait_list, const cl_event *event_wait_list, cl_event
+  *event)
 {
     cl_int	status;
     status = clEnqueueReadBuffer(queue, buffer, blocking_read, offset,
-	    size, ptr, num_events_in_wait_list, event_wait_list, event);
+      size, ptr, num_events_in_wait_list, event_wait_list, event);
     if (status != CL_SUCCESS)
         fatal("clEnqueueReadBuffer (%d)\n", status);
 }
@@ -170,19 +170,19 @@ void load_file(const char *fname, char **dat, size_t *dat_len)
     int		fd;
     ssize_t	ret;
     if (-1 == (fd = open(fname, O_RDONLY)))
-	fatal("%s: %s\n", fname, strerror(errno));
+  fatal("%s: %s\n", fname, strerror(errno));
     if (fstat(fd, &st))
-	fatal("fstat: %s: %s\n", fname, strerror(errno));
+  fatal("fstat: %s: %s\n", fname, strerror(errno));
     *dat_len = st.st_size;
     if (!(*dat = (char *)malloc(*dat_len + 1)))
-	fatal("malloc: %s\n", strerror(errno));
+  fatal("malloc: %s\n", strerror(errno));
     ret = read(fd, *dat, *dat_len);
     if (ret < 0)
-	fatal("read: %s: %s\n", fname, strerror(errno));
+  fatal("read: %s: %s\n", fname, strerror(errno));
     if ((size_t)ret != *dat_len)
-	fatal("%s: partial read\n", fname);
+  fatal("%s: partial read\n", fname);
     if (close(fd))
-	fatal("close: %s: %s\n", fname, strerror(errno));
+  fatal("close: %s: %s\n", fname, strerror(errno));
     (*dat)[*dat_len] = 0;
 }
 
@@ -192,12 +192,12 @@ void get_program_build_log(cl_program program, cl_device_id device)
     char	        val[2*1024*1024];
     size_t		ret = 0;
     status = clGetProgramBuildInfo(program, device,
-	    CL_PROGRAM_BUILD_LOG,
-	    sizeof (val),	// size_t param_value_size
-	    &val,		// void *param_value
-	    &ret);		// size_t *param_value_size_ret
+      CL_PROGRAM_BUILD_LOG,
+      sizeof (val),	// size_t param_value_size
+      &val,		// void *param_value
+      &ret);		// size_t *param_value_size_ret
     if (status != CL_SUCCESS)
-	fatal("clGetProgramBuildInfo (%d)\n", status);
+  fatal("clGetProgramBuildInfo (%d)\n", status);
     fprintf(stderr, "%s\n", val);
 }
 
@@ -206,14 +206,14 @@ void dump(const char *fname, void *data, size_t len)
     int			fd;
     ssize_t		ret;
     if (-1 == (fd = open(fname, O_WRONLY | O_CREAT | O_TRUNC, 0666)))
-	fatal("%s: %s\n", fname, strerror(errno));
+  fatal("%s: %s\n", fname, strerror(errno));
     ret = write(fd, data, len);
     if (ret == -1)
-	fatal("write: %s: %s\n", fname, strerror(errno));
+  fatal("write: %s: %s\n", fname, strerror(errno));
     if ((size_t)ret != len)
-	fatal("%s: partial write\n", fname);
+  fatal("%s: partial write\n", fname);
     if (-1 == close(fd))
-	fatal("close: %s: %s\n", fname, strerror(errno));
+  fatal("close: %s: %s\n", fname, strerror(errno));
 }
 
 void get_program_bins(cl_program program)
@@ -223,21 +223,21 @@ void get_program_bins(cl_program program)
     unsigned char	*p;
     size_t		ret = 0;
     status = clGetProgramInfo(program, CL_PROGRAM_BINARY_SIZES,
-	    sizeof (sizes),	// size_t param_value_size
-	    &sizes,		// void *param_value
-	    &ret);		// size_t *param_value_size_ret
+      sizeof (sizes),	// size_t param_value_size
+      &sizes,		// void *param_value
+      &ret);		// size_t *param_value_size_ret
     if (status != CL_SUCCESS)
-	fatal("clGetProgramInfo(sizes) (%d)\n", status);
+  fatal("clGetProgramInfo(sizes) (%d)\n", status);
     if (ret != sizeof (sizes))
-	fatal("clGetProgramInfo(sizes) did not fill sizes (%d)\n", status);
+  fatal("clGetProgramInfo(sizes) did not fill sizes (%d)\n", status);
     debug("Program binary size is %zd bytes\n", sizes);
     p = (unsigned char *)malloc(sizes);
     status = clGetProgramInfo(program, CL_PROGRAM_BINARIES,
-	    sizeof (p),	// size_t param_value_size
-	    &p,		// void *param_value
-	    &ret);	// size_t *param_value_size_ret
+      sizeof (p),	// size_t param_value_size
+      &p,		// void *param_value
+      &ret);	// size_t *param_value_size_ret
     if (status != CL_SUCCESS)
-	fatal("clGetProgramInfo (%d)\n", status);
+  fatal("clGetProgramInfo (%d)\n", status);
     dump("dump.co", p, sizes);
     debug("program: %02x%02x%02x%02x...\n", p[0], p[1], p[2], p[3]);
 }
@@ -250,13 +250,13 @@ void print_device_info(unsigned i, cl_device_id d)
     r = clGetDeviceInfo(d, CL_DEVICE_NAME, sizeof (name), &name,
             &len);
     if (r)
-	fatal("clGetDeviceInfo (%d)\n", r);
+  fatal("clGetDeviceInfo (%d)\n", r);
     printf("ID %d: %s\n", i, name);
 }
 
 #ifdef ENABLE_DEBUG
 uint32_t has_i(uint32_t round, uint8_t *ht, uint32_t row, uint32_t i,
-	uint32_t mask, uint32_t *res)
+  uint32_t mask, uint32_t *res)
 {
     uint32_t	slot;
     uint8_t	*p = (uint8_t *)(ht + row * NR_SLOTS * SLOT_LEN);
@@ -264,19 +264,19 @@ uint32_t has_i(uint32_t round, uint8_t *ht, uint32_t row, uint32_t i,
     cnt = MIN(cnt, NR_SLOTS);
     for (slot = 0; slot < cnt; slot++, p += SLOT_LEN)
       {
-	if ((*(uint32_t *)(p + xi_offset_for_round(round) - 4) & mask) ==
-		(i & mask))
-	  {
-	    if (res)
-		*res = slot;
-	    return 1;
-	  }
+  if ((*(uint32_t *)(p + xi_offset_for_round(round) - 4) & mask) ==
+    (i & mask))
+    {
+      if (res)
+    *res = slot;
+      return 1;
+    }
       }
     return 0;
 }
 
 uint32_t has_xi(uint32_t round, uint8_t *ht, uint32_t row, uint32_t xi,
-	uint32_t *res)
+  uint32_t *res)
 {
     uint32_t	slot;
     uint8_t	*p = (uint8_t *)(ht + row * NR_SLOTS * SLOT_LEN);
@@ -284,12 +284,12 @@ uint32_t has_xi(uint32_t round, uint8_t *ht, uint32_t row, uint32_t xi,
     cnt = MIN(cnt, NR_SLOTS);
     for (slot = 0; slot < cnt; slot++, p += SLOT_LEN)
       {
-	if ((*(uint32_t *)(p + xi_offset_for_round(round))) == (xi))
-	  {
-	    if (res)
-		*res = slot;
-	    return 1;
-	  }
+  if ((*(uint32_t *)(p + xi_offset_for_round(round))) == (xi))
+    {
+      if (res)
+    *res = slot;
+      return 1;
+    }
       }
     return 0;
 }
@@ -299,78 +299,78 @@ void examine_ht(unsigned round, cl_command_queue queue, cl_mem buf_ht)
     uint8_t     *ht;
     uint8_t	*p;
     if (verbose < 3)
-	return ;
+  return ;
     ht = (uint8_t *)malloc(HT_SIZE);
     if (!ht)
-	fatal("malloc: %s\n", strerror(errno));
+  fatal("malloc: %s\n", strerror(errno));
     check_clEnqueueReadBuffer(queue, buf_ht,
-	    CL_TRUE,	// cl_bool	blocking_read
-	    0,		// size_t	offset
-	    HT_SIZE,    // size_t	size
-	    ht,	        // void		*ptr
-	    0,		// cl_uint	num_events_in_wait_list
-	    NULL,	// cl_event	*event_wait_list
-	    NULL);	// cl_event	*event
+      CL_TRUE,	// cl_bool	blocking_read
+      0,		// size_t	offset
+      HT_SIZE,    // size_t	size
+      ht,	        // void		*ptr
+      0,		// cl_uint	num_events_in_wait_list
+      NULL,	// cl_event	*event_wait_list
+      NULL);	// cl_event	*event
     for (unsigned row = 0; row < NR_ROWS; row++)
       {
-	char show = 0;
-	uint32_t star = 0;
-	if (round == 0)
-	  {
-	    show |= has_i(round, ht, row, 0x12d31f, 0xffffffffUL, &star);
-	    show |= has_i(round, ht, row, 0x35c, 0xffffffffUL, &star);
-	  }
-	if (round == 1)
-	  {
-	    show |= has_i(round, ht, row, 0xb6b71804, 0xffffffffUL, &star);
-	    show |= has_xi(round, ht, row, 0xf0937683, &star);
-	  }
-	if (round == 2)
-	    show |= has_xi(round, ht, row, 0xe889d678, &star);
-	if (round == 3)
-	    show |= has_xi(round, ht, row, 0xd6950b66, &star);
-	if (round == 4)
-	    show |= has_xi(round, ht, row, 0xa92db6ab, &star);
-	if (round == 5)
-	    show |= has_xi(round, ht, row, 0x2daaa343, &star);
-	if (round == 6)
-	    show |= has_xi(round, ht, row, 0x53b9dd5d, &star);
-	if (round == 7)
-	    show |= has_xi(round, ht, row, 0xb9d374fe, &star);
-	if (round == 8)
-	    show |= has_xi(round, ht, row, 0x005ae381, &star);
-	if (show)
-	  {
-	    debug("row %#x:\n", row);
-	    uint32_t cnt = *(uint32_t *)(ht + row * NR_SLOTS * SLOT_LEN);
-	    cnt = MIN(cnt, NR_SLOTS);
-	    for (unsigned slot = 0; slot < cnt; slot++)
-		if (slot < NR_SLOTS)
-		  {
-		    p = ht + row * NR_SLOTS * SLOT_LEN + slot * SLOT_LEN;
-		    debug("%c%02x ", (star == slot) ? '*' : ' ', slot);
-		    for (unsigned i = 0; i < 4; i++, p++)
-			!slot ? debug("%02x", *p) : debug("__");
-		    uint64_t val[3] = {0,};
-		    for (unsigned i = 0; i < 28; i++, p++)
-		      {
-			if (i == round / 2 * 4 + 4)
-			  {
-			    val[0] = *(uint64_t *)(p + 0);
-			    val[1] = *(uint64_t *)(p + 8);
-			    val[2] = *(uint64_t *)(p + 16);
-			    debug(" | ");
-			  }
-			else if (!(i % 4))
-			    debug(" ");
-			debug("%02x", *p);
-		      }
-		    val[0] = (val[0] >> 4) | (val[1] << (64 - 4));
-		    val[1] = (val[1] >> 4) | (val[2] << (64 - 4));
-		    val[2] = (val[2] >> 4);
-		    debug("\n");
-		  }
-	  }
+  char show = 0;
+  uint32_t star = 0;
+  if (round == 0)
+    {
+      show |= has_i(round, ht, row, 0x12d31f, 0xffffffffUL, &star);
+      show |= has_i(round, ht, row, 0x35c, 0xffffffffUL, &star);
+    }
+  if (round == 1)
+    {
+      show |= has_i(round, ht, row, 0xb6b71804, 0xffffffffUL, &star);
+      show |= has_xi(round, ht, row, 0xf0937683, &star);
+    }
+  if (round == 2)
+      show |= has_xi(round, ht, row, 0xe889d678, &star);
+  if (round == 3)
+      show |= has_xi(round, ht, row, 0xd6950b66, &star);
+  if (round == 4)
+      show |= has_xi(round, ht, row, 0xa92db6ab, &star);
+  if (round == 5)
+      show |= has_xi(round, ht, row, 0x2daaa343, &star);
+  if (round == 6)
+      show |= has_xi(round, ht, row, 0x53b9dd5d, &star);
+  if (round == 7)
+      show |= has_xi(round, ht, row, 0xb9d374fe, &star);
+  if (round == 8)
+      show |= has_xi(round, ht, row, 0x005ae381, &star);
+  if (show)
+    {
+      debug("row %#x:\n", row);
+      uint32_t cnt = *(uint32_t *)(ht + row * NR_SLOTS * SLOT_LEN);
+      cnt = MIN(cnt, NR_SLOTS);
+      for (unsigned slot = 0; slot < cnt; slot++)
+    if (slot < NR_SLOTS)
+      {
+        p = ht + row * NR_SLOTS * SLOT_LEN + slot * SLOT_LEN;
+        debug("%c%02x ", (star == slot) ? '*' : ' ', slot);
+        for (unsigned i = 0; i < 4; i++, p++)
+      !slot ? debug("%02x", *p) : debug("__");
+        uint64_t val[3] = {0,};
+        for (unsigned i = 0; i < 28; i++, p++)
+          {
+      if (i == round / 2 * 4 + 4)
+        {
+          val[0] = *(uint64_t *)(p + 0);
+          val[1] = *(uint64_t *)(p + 8);
+          val[2] = *(uint64_t *)(p + 16);
+          debug(" | ");
+        }
+      else if (!(i % 4))
+          debug(" ");
+      debug("%02x", *p);
+          }
+        val[0] = (val[0] >> 4) | (val[1] << (64 - 4));
+        val[1] = (val[1] >> 4) | (val[2] << (64 - 4));
+        val[2] = (val[2] >> 4);
+        debug("\n");
+      }
+    }
       }
     free(ht);
 }
@@ -388,10 +388,10 @@ void examine_dbg(cl_command_queue queue, cl_mem buf_dbg, size_t dbg_size)
     debug_t     *dbg;
     size_t      dropped_coll_total, dropped_stor_total;
     if (verbose < 2)
-	return ;
+  return ;
     dbg = (debug_t *)malloc(dbg_size);
     if (!dbg)
-	fatal("malloc: %s\n", strerror(errno));
+  fatal("malloc: %s\n", strerror(errno));
     check_clEnqueueReadBuffer(queue, buf_dbg,
             CL_TRUE,	// cl_bool	blocking_read
             0,		// size_t	offset
@@ -405,9 +405,9 @@ void examine_dbg(cl_command_queue queue, cl_mem buf_dbg, size_t dbg_size)
       {
         dropped_coll_total += dbg[tid].dropped_coll;
         dropped_stor_total += dbg[tid].dropped_stor;
-	if (0 && (dbg[tid].dropped_coll || dbg[tid].dropped_stor))
-	    debug("thread %6d: dropped_coll %zd dropped_stor %zd\n", tid,
-		    dbg[tid].dropped_coll, dbg[tid].dropped_stor);
+  if (0 && (dbg[tid].dropped_coll || dbg[tid].dropped_stor))
+      debug("thread %6d: dropped_coll %zd dropped_stor %zd\n", tid,
+        dbg[tid].dropped_coll, dbg[tid].dropped_stor);
       }
     debug("Dropped: %zd (coll) %zd (stor)\n",
             dropped_coll_total, dropped_stor_total);
@@ -508,13 +508,13 @@ void print_sol(uint32_t *values, uint64_t *nonce)
     uint32_t	show_n_sols;
     show_n_sols = (1 << PARAM_K);
     if (verbose < 2)
-	show_n_sols = MIN(10, show_n_sols);
+  show_n_sols = MIN(10, show_n_sols);
     fprintf(stderr, "Soln:");
     // for brievity, only print "small" nonces
     if (*nonce < (1UL << 32))
-	fprintf(stderr, " 0x%lx:", *nonce);
+  fprintf(stderr, " 0x%lx:", *nonce);
     for (unsigned i = 0; i < show_n_sols; i++)
-	fprintf(stderr, " %x", values[i]);
+  fprintf(stderr, " %x", values[i]);
     fprintf(stderr, "%s\n", (show_n_sols != (1 << PARAM_K) ? "..." : ""));
 }
 
@@ -524,10 +524,10 @@ int sol_cmp(const void *_a, const void *_b)
     const uint32_t	*b = _b;
     for (uint32_t i = 0; i < (1 << PARAM_K); i++)
       {
-	if (*a != *b)
-	    return *a - *b;
-	a++;
-	b++;
+  if (*a != *b)
+      return *a - *b;
+  a++;
+  b++;
       }
     return 0;
 }
@@ -541,28 +541,28 @@ void print_sols(sols_t *all_sols, uint64_t *nonce, uint32_t nr_valid_sols)
     uint32_t		counted;
     valid_sols = malloc(nr_valid_sols * SOL_SIZE);
     if (!valid_sols)
-	fatal("malloc: %s\n", strerror(errno));
+  fatal("malloc: %s\n", strerror(errno));
     counted = 0;
     for (uint32_t i = 0; i < all_sols->nr; i++)
-	if (all_sols->valid[i])
-	  {
-	    if (counted >= nr_valid_sols)
-		fatal("Bug: more than %d solutions\n", nr_valid_sols);
-	    memcpy(valid_sols + counted * SOL_SIZE, all_sols->values[i],
-		    SOL_SIZE);
-	    counted++;
-	  }
+  if (all_sols->valid[i])
+    {
+      if (counted >= nr_valid_sols)
+    fatal("Bug: more than %d solutions\n", nr_valid_sols);
+      memcpy(valid_sols + counted * SOL_SIZE, all_sols->values[i],
+        SOL_SIZE);
+      counted++;
+    }
     assert(counted == nr_valid_sols);
     // sort the solutions amongst each other, to make silentarmy's output
     // deterministic and testable
     qsort(valid_sols, nr_valid_sols, SOL_SIZE, sol_cmp);
     for (uint32_t i = 0; i < nr_valid_sols; i++)
       {
-	uint32_t	*inputs = (uint32_t *)(valid_sols + i * SOL_SIZE);
-	if (show_encoded)
-	    print_encoded_sol(inputs, 1 << PARAM_K);
-	if (verbose)
-	    print_sol(inputs, nonce);
+  uint32_t	*inputs = (uint32_t *)(valid_sols + i * SOL_SIZE);
+  if (show_encoded)
+      print_encoded_sol(inputs, 1 << PARAM_K);
+  if (verbose)
+      print_sol(inputs, nonce);
       }
     free(valid_sols);
 }
@@ -579,15 +579,15 @@ void sort_pair(uint32_t *a, uint32_t len)
     uint32_t    *b = a + len;
     uint32_t     tmp, need_sorting = 0;
     for (uint32_t i = 0; i < len; i++)
-	if (need_sorting || a[i] > b[i])
-	  {
-	    need_sorting = 1;
-	    tmp = a[i];
-	    a[i] = b[i];
-	    b[i] = tmp;
-	  }
-	else if (a[i] < b[i])
-	    return ;
+  if (need_sorting || a[i] > b[i])
+    {
+      need_sorting = 1;
+      tmp = a[i];
+      a[i] = b[i];
+      b[i] = tmp;
+    }
+  else if (a[i] < b[i])
+      return ;
 }
 
 /*
@@ -605,22 +605,22 @@ uint32_t verify_sol(sols_t *sols, unsigned sol_i)
     memset(seen, 0, seen_len);
     for (i = 0; i < (1 << PARAM_K); i++)
       {
-	tmp = seen[inputs[i] / 8];
-	seen[inputs[i] / 8] |= 1 << (inputs[i] & 7);
-	if (tmp == seen[inputs[i] / 8])
-	  {
-	    // at least one input value is a duplicate
-	    sols->valid[sol_i] = 0;
-	    return 0;
-	  }
+  tmp = seen[inputs[i] / 8];
+  seen[inputs[i] / 8] |= 1 << (inputs[i] & 7);
+  if (tmp == seen[inputs[i] / 8])
+    {
+      // at least one input value is a duplicate
+      sols->valid[sol_i] = 0;
+      return 0;
+    }
       }
     // the valid flag is already set by the GPU, but set it again because
     // I plan to change the GPU code to not set it
     sols->valid[sol_i] = 1;
     // sort the pairs in place
     for (uint32_t level = 0; level < PARAM_K; level++)
-	for (i = 0; i < (1 << PARAM_K); i += (2 << level))
-	    sort_pair(&inputs[i], 1 << level);
+  for (i = 0; i < (1 << PARAM_K); i += (2 << level))
+      sort_pair(&inputs[i], 1 << level);
     return 1;
 }
 
@@ -633,28 +633,28 @@ uint32_t verify_sols(cl_command_queue queue, cl_mem buf_sols, uint64_t *nonce)
     uint32_t	nr_valid_sols;
     sols = (sols_t *)malloc(sizeof (*sols));
     if (!sols)
-	fatal("malloc: %s\n", strerror(errno));
+  fatal("malloc: %s\n", strerror(errno));
     check_clEnqueueReadBuffer(queue, buf_sols,
-	    CL_TRUE,	// cl_bool	blocking_read
-	    0,		// size_t	offset
-	    sizeof (*sols),	// size_t	size
-	    sols,	// void		*ptr
-	    0,		// cl_uint	num_events_in_wait_list
-	    NULL,	// cl_event	*event_wait_list
-	    NULL);	// cl_event	*event
+      CL_TRUE,	// cl_bool	blocking_read
+      0,		// size_t	offset
+      sizeof (*sols),	// size_t	size
+      sols,	// void		*ptr
+      0,		// cl_uint	num_events_in_wait_list
+      NULL,	// cl_event	*event_wait_list
+      NULL);	// cl_event	*event
     if (sols->nr > MAX_SOLS)
       {
-	fprintf(stderr, "%d (probably invalid) solutions were dropped!\n",
-		sols->nr - MAX_SOLS);
-	sols->nr = MAX_SOLS;
+  fprintf(stderr, "%d (probably invalid) solutions were dropped!\n",
+    sols->nr - MAX_SOLS);
+  sols->nr = MAX_SOLS;
       }
     nr_valid_sols = 0;
     for (unsigned sol_i = 0; sol_i < sols->nr; sol_i++)
-	nr_valid_sols += verify_sol(sols, sol_i);
+  nr_valid_sols += verify_sol(sols, sol_i);
     print_sols(sols, nonce, nr_valid_sols);
     fprintf(stderr, "Nonce %s: %d sol%s\n",
-	    s_hexdump(nonce, ZCASH_NONCE_LEN), nr_valid_sols,
-	    nr_valid_sols == 1 ? "" : "s");
+      s_hexdump(nonce, ZCASH_NONCE_LEN), nr_valid_sols,
+      nr_valid_sols == 1 ? "" : "s");
     debug("Stats: %d likely invalids\n", sols->likely_invalidss);
     free(sols);
     return nr_valid_sols;
@@ -678,9 +678,9 @@ uint32_t verify_sols(cl_command_queue queue, cl_mem buf_sols, uint64_t *nonce)
 ** Return the number of solutions found.
 */
 uint32_t solve_equihash(cl_context ctx, cl_command_queue queue,
-	cl_kernel k_init_ht, cl_kernel *k_rounds, cl_kernel k_sols,
-	cl_mem *buf_ht, cl_mem buf_sols, cl_mem buf_dbg, size_t dbg_size,
-	uint8_t *header, size_t header_len, uint64_t nonce)
+  cl_kernel k_init_ht, cl_kernel *k_rounds, cl_kernel k_sols,
+  cl_mem *buf_ht, cl_mem buf_sols, cl_mem buf_dbg, size_t dbg_size,
+  uint8_t *header, size_t header_len, uint64_t nonce)
 {
     blake2b_state_t     blake;
     cl_mem              buf_blake_st;
@@ -689,10 +689,10 @@ uint32_t solve_equihash(cl_context ctx, cl_command_queue queue,
     uint32_t		sol_found = 0;
     uint64_t		*nonce_ptr;
     assert(header_len == ZCASH_BLOCK_HEADER_LEN ||
-	    header_len == ZCASH_BLOCK_HEADER_LEN - ZCASH_NONCE_LEN);
+      header_len == ZCASH_BLOCK_HEADER_LEN - ZCASH_NONCE_LEN);
     nonce_ptr = (uint64_t *)(header + ZCASH_BLOCK_HEADER_LEN - ZCASH_NONCE_LEN);
     if (header_len == ZCASH_BLOCK_HEADER_LEN - ZCASH_NONCE_LEN)
-	memset(nonce_ptr, 0, ZCASH_NONCE_LEN);
+  memset(nonce_ptr, 0, ZCASH_NONCE_LEN);
     // add the nonce
     *nonce_ptr += nonce;
     debug("\nSolving nonce %s\n", s_hexdump(nonce_ptr, ZCASH_NONCE_LEN));
@@ -700,37 +700,37 @@ uint32_t solve_equihash(cl_context ctx, cl_command_queue queue,
     zcash_blake2b_init(&blake, ZCASH_HASH_LEN, PARAM_N, PARAM_K);
     zcash_blake2b_update(&blake, header, 128, 0);
     buf_blake_st = check_clCreateBuffer(ctx, CL_MEM_READ_ONLY |
-	    CL_MEM_COPY_HOST_PTR, sizeof (blake.h), &blake.h);
+      CL_MEM_COPY_HOST_PTR, sizeof (blake.h), &blake.h);
     for (unsigned round = 0; round < PARAM_K; round++)
       {
-	if (verbose > 1)
-	    debug("Round %d\n", round);
-	init_ht(queue, k_init_ht, buf_ht[round % 2]);
-	if (!round)
-	  {
-	    check_clSetKernelArg(k_rounds[round], 0, &buf_blake_st);
-	    check_clSetKernelArg(k_rounds[round], 1, &buf_ht[round % 2]);
-	    global_ws = select_work_size_blake();
-	  }
-	else
-	  {
-	    check_clSetKernelArg(k_rounds[round], 0, &buf_ht[(round - 1) % 2]);
-	    check_clSetKernelArg(k_rounds[round], 1, &buf_ht[round % 2]);
-	    global_ws = NR_ROWS;
-	  }
+  if (verbose > 1)
+      debug("Round %d\n", round);
+  init_ht(queue, k_init_ht, buf_ht[round % 2]);
+  if (!round)
+    {
+      check_clSetKernelArg(k_rounds[round], 0, &buf_blake_st);
+      check_clSetKernelArg(k_rounds[round], 1, &buf_ht[round % 2]);
+      global_ws = select_work_size_blake();
+    }
+  else
+    {
+      check_clSetKernelArg(k_rounds[round], 0, &buf_ht[(round - 1) % 2]);
+      check_clSetKernelArg(k_rounds[round], 1, &buf_ht[round % 2]);
+      global_ws = NR_ROWS;
+    }
 
-	check_clSetKernelArg(k_rounds[round], 2, &buf_dbg);
-	check_clEnqueueNDRangeKernel(queue, k_rounds[round], 1, NULL,
-		&global_ws, &local_work_size, 0, NULL, NULL);
-	examine_ht(round, queue, buf_ht[round % 2]);
-	examine_dbg(queue, buf_dbg, dbg_size);
+  check_clSetKernelArg(k_rounds[round], 2, &buf_dbg);
+  check_clEnqueueNDRangeKernel(queue, k_rounds[round], 1, NULL,
+    &global_ws, &local_work_size, 0, NULL, NULL);
+  examine_ht(round, queue, buf_ht[round % 2]);
+  examine_dbg(queue, buf_dbg, dbg_size);
       }
     check_clSetKernelArg(k_sols, 0, &buf_ht[0]);
     check_clSetKernelArg(k_sols, 1, &buf_ht[1]);
     check_clSetKernelArg(k_sols, 2, &buf_sols);
     global_ws = NR_ROWS;
     check_clEnqueueNDRangeKernel(queue, k_sols, 1, NULL,
-	    &global_ws, &local_work_size, 0, NULL, NULL);
+      &global_ws, &local_work_size, 0, NULL, NULL);
     sol_found = verify_sols(queue, buf_sols, nonce_ptr);
     clReleaseMemObject(buf_blake_st);
     return sol_found;
@@ -738,7 +738,7 @@ uint32_t solve_equihash(cl_context ctx, cl_command_queue queue,
 
 void run_opencl(uint8_t *header, size_t header_len, cl_context ctx,
         cl_command_queue queue, cl_kernel k_init_ht, cl_kernel *k_rounds,
-	cl_kernel k_sols)
+  cl_kernel k_sols)
 {
     cl_mem              buf_ht[2], buf_sols, buf_dbg;
     void                *dbg = NULL;
@@ -752,23 +752,23 @@ void run_opencl(uint8_t *header, size_t header_len, cl_context ctx,
     fprintf(stderr, "Hash tables will use %.1f MB\n", 2.0 * HT_SIZE / 1e6);
     // Set up buffers for the host and memory objects for the kernel
     if (!(dbg = calloc(dbg_size, 1)))
-	fatal("malloc: %s\n", strerror(errno));
+  fatal("malloc: %s\n", strerror(errno));
     buf_dbg = check_clCreateBuffer(ctx, CL_MEM_READ_WRITE |
-	    CL_MEM_COPY_HOST_PTR, dbg_size, dbg);
+      CL_MEM_COPY_HOST_PTR, dbg_size, dbg);
     buf_ht[0] = check_clCreateBuffer(ctx, CL_MEM_READ_WRITE, HT_SIZE, NULL);
     buf_ht[1] = check_clCreateBuffer(ctx, CL_MEM_READ_WRITE, HT_SIZE, NULL);
     buf_sols = check_clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof (sols_t),
-	    NULL);
+      NULL);
     fprintf(stderr, "Running...\n");
     // Solve Equihash for a few nonces
     total = 0;
     uint64_t t0 = now();
     for (nonce = 0; nonce < nr_nonces; nonce++)
-	total += solve_equihash(ctx, queue, k_init_ht, k_rounds, k_sols, buf_ht,
-		buf_sols, buf_dbg, dbg_size, header, header_len, nonce);
+  total += solve_equihash(ctx, queue, k_init_ht, k_rounds, k_sols, buf_ht,
+    buf_sols, buf_dbg, dbg_size, header, header_len, nonce);
     uint64_t t1 = now();
     fprintf(stderr, "Total %ld solutions in %.1f ms (%.1f Sol/s)\n",
-	    total, (t1 - t0) / 1e3, total / ((t1 - t0) / 1e6));
+      total, (t1 - t0) / 1e3, total / ((t1 - t0) / 1e6));
     // Clean up
     if (dbg)
         free(dbg);
@@ -782,7 +782,7 @@ void list_gpu(cl_device_id *devices, cl_uint nr)
     (void)devices;
     printf("Found %d GPU device%s\n", nr, (nr != 1) ? "s" : "");
     for (uint32_t i = 0; i < nr; i++)
-	print_device_info(i, devices[i]);
+  print_device_info(i, devices[i]);
 }
 
 void init_and_run_opencl(uint8_t *header, size_t header_len)
@@ -794,81 +794,81 @@ void init_and_run_opencl(uint8_t *header, size_t header_len)
     cl_int		status = clGetPlatformIDs(0, NULL, &numPlatforms);
     cl_kernel		k_rounds[PARAM_K];
     if (status != CL_SUCCESS)
-	fatal("Cannot get OpenCL platforms! (%d)\n", status);
+  fatal("Cannot get OpenCL platforms! (%d)\n", status);
     debug("Found %d OpenCL platform(s)\n", numPlatforms);
     if (numPlatforms == 0)
-	exit(1);
+  exit(1);
     cl_platform_id* platforms = (cl_platform_id *)
         malloc(numPlatforms * sizeof (cl_platform_id));
     status = clGetPlatformIDs(numPlatforms, platforms, NULL);
     if (status != CL_SUCCESS)
-	fatal("clGetPlatformIDs (%d)\n", status);
+  fatal("clGetPlatformIDs (%d)\n", status);
     platform = platforms[0]; // always select first platform
     free(platforms);
     // Query the platform and choose the first GPU device if has one
     status = clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 0, NULL, &nr_devs);
     if (status != CL_SUCCESS)
-	fatal("clGetDeviceIDs (%d)\n", status);
+  fatal("clGetDeviceIDs (%d)\n", status);
     if (nr_devs == 0)
-	fatal("No GPU device available\n");
+  fatal("No GPU device available\n");
     devices = (cl_device_id*)malloc(nr_devs * sizeof (*devices));
     status = clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, nr_devs, devices,
-	    NULL);
+      NULL);
     if (status != CL_SUCCESS)
-	fatal("clGetDeviceIDs (%d)\n", status);
+  fatal("clGetDeviceIDs (%d)\n", status);
     if (do_list_gpu)
       {
-	list_gpu(devices, nr_devs);
-	return ;
+  list_gpu(devices, nr_devs);
+  return ;
       }
     /* Create context.*/
     if (gpu_to_use >= nr_devs)
-	fatal("%d is an invalid GPU ID; see --list-gpu\n", gpu_to_use);
+  fatal("%d is an invalid GPU ID; see --list-gpu\n", gpu_to_use);
     cl_context context = clCreateContext(NULL, 1, devices + gpu_to_use,
-	    NULL, NULL, &status);
+      NULL, NULL, &status);
     if (status != CL_SUCCESS || !context)
-	fatal("clCreateContext (%d)\n", status);
+  fatal("clCreateContext (%d)\n", status);
     /* Creating command queue associate with the context.*/
     cl_command_queue queue = clCreateCommandQueue(context, devices[gpu_to_use],
-	    0, &status);
+      0, &status);
     if (status != CL_SUCCESS || !queue)
-	fatal("clCreateCommandQueue (%d)\n", status);
+  fatal("clCreateCommandQueue (%d)\n", status);
     /* Create program object */
     cl_program program;
     char *source;
     size_t source_len;
     load_file("kernel.cl", &source, &source_len);
     program = clCreateProgramWithSource(context, 1, (const char **)&source,
-	    &source_len, &status);
+      &source_len, &status);
     if (status != CL_SUCCESS || !program)
-	fatal("clCreateProgramWithSource (%d)\n", status);
+  fatal("clCreateProgramWithSource (%d)\n", status);
     /* Build program. */
     fprintf(stderr, "Building program\n");
     status = clBuildProgram(program, 1, devices + gpu_to_use, 
-	    "", // compile options
-	    NULL, NULL);
+      "", // compile options
+      NULL, NULL);
     if (status != CL_SUCCESS)
       {
         warn("OpenCL build failed (%d). Build log follows:\n", status);
         get_program_build_log(program, devices[gpu_to_use]);
-	exit(1);
+  exit(1);
       }
     //get_program_bins(program);
     // Create kernel objects
     cl_kernel k_init_ht = clCreateKernel(program, "kernel_init_ht", &status);
     if (status != CL_SUCCESS || !k_init_ht)
-	fatal("clCreateKernel (%d)\n", status);
+  fatal("clCreateKernel (%d)\n", status);
     for (unsigned round = 0; round < PARAM_K; round++)
       {
-	char	name[128];
-	snprintf(name, sizeof (name), "kernel_round%d", round);
-	k_rounds[round] = clCreateKernel(program, name, &status);
-	if (status != CL_SUCCESS || !k_rounds[round])
-	    fatal("clCreateKernel (%d)\n", status);
+  char	name[128];
+  snprintf(name, sizeof (name), "kernel_round%d", round);
+  k_rounds[round] = clCreateKernel(program, name, &status);
+  if (status != CL_SUCCESS || !k_rounds[round])
+      fatal("clCreateKernel (%d)\n", status);
       }
     cl_kernel k_sols = clCreateKernel(program, "kernel_sols", &status);
     if (status != CL_SUCCESS || !k_sols)
-	fatal("clCreateKernel (%d)\n", status);
+  fatal("clCreateKernel (%d)\n", status);
     // Run
     run_opencl(header, header_len, context, queue, k_init_ht, k_rounds, k_sols);
     // Release resources
@@ -876,20 +876,20 @@ void init_and_run_opencl(uint8_t *header, size_t header_len)
     status = CL_SUCCESS;
     status |= clReleaseKernel(k_init_ht);
     for (unsigned round = 0; round < PARAM_K; round++)
-	status |= clReleaseKernel(k_rounds[round]);
+  status |= clReleaseKernel(k_rounds[round]);
     status |= clReleaseProgram(program);
     status |= clReleaseCommandQueue(queue);
     status |= clReleaseContext(context);
     if (status)
-	fprintf(stderr, "Cleaning resources failed\n");
+  fprintf(stderr, "Cleaning resources failed\n");
     if (devices != NULL)
-	free(devices);
+  free(devices);
 }
 
 void print_header(uint8_t *h, size_t len)
 {
     for (uint32_t i = 0; i < len; i++)
-	printf("%02x", h[i]);
+  printf("%02x", h[i]);
     printf(" (%zd bytes)\n", len);
 }
 
@@ -902,26 +902,26 @@ uint32_t parse_header(uint8_t *h, size_t h_len, const char *hex)
     size_t      i;
     if (!hex)
       {
-	if (!do_list_gpu)
-	    fprintf(stderr, "Solving default all-zero %zd-byte header\n", opt0);
-	return opt1;
+  if (!do_list_gpu)
+      fprintf(stderr, "Solving default all-zero %zd-byte header\n", opt0);
+  return opt1;
       }
     hex_len = strlen(hex);
     bin_len = hex_len / 2;
     if (hex_len % 2)
-	fatal("Error: input header must be an even number of hex digits\n");
+  fatal("Error: input header must be an even number of hex digits\n");
     if (bin_len != opt0 && bin_len != opt1)
-	fatal("Error: input header must be either a %zd-byte full header, "
-		"or a %zd-byte nonceless header\n", opt0, opt1);
+  fatal("Error: input header must be either a %zd-byte full header, "
+    "or a %zd-byte nonceless header\n", opt0, opt1);
     assert(bin_len <= h_len);
     for (i = 0; i < bin_len; i ++)
-	h[i] = hex2val(hex, i * 2) * 16 + hex2val(hex, i * 2 + 1);
+  h[i] = hex2val(hex, i * 2) * 16 + hex2val(hex, i * 2 + 1);
     if (bin_len == opt0)
-	while (--i >= bin_len - 12)
-	    if (h[i])
-		fatal("Error: last 12 bytes of full header (ie. last 12 "
-			"bytes of 32-byte nonce) must be zero due to an "
-			"optimization in my BLAKE2b implementation\n");
+  while (--i >= bin_len - 12)
+      if (h[i])
+    fatal("Error: last 12 bytes of full header (ie. last 12 "
+      "bytes of 32-byte nonce) must be zero due to an "
+      "optimization in my BLAKE2b implementation\n");
     return bin_len;
 }
 
@@ -957,16 +957,16 @@ static struct option    optlong[] =
 void usage(const char *progname)
 {
     printf("Usage: %s [options]\n"
-	    "Silentarmy is a GPU Zcash Equihash solver.\n"
-	    "\n"
-	    "Options are:\n"
+      "Silentarmy is a GPU Zcash Equihash solver.\n"
+      "\n"
+      "Options are:\n"
             "  -h, --help     display this help and exit\n"
             "  -v, --verbose  print verbose messages\n"
             "  -i <input>     hex block header to solve; either a 140-byte "
-	    "full header,\n"
-	    "                 or a 108-byte nonceless header with implicit "
-	    "zero nonce\n"
-	    "                 (default: all-zero header)\n"
+      "full header,\n"
+      "                 or a 108-byte nonceless header with implicit "
+      "zero nonce\n"
+      "                 (default: all-zero header)\n"
             "  --nonces <nr>  number of nonces to try (default: 1)\n"
             "  -n <n>         equihash n param (only supported value is 200)\n"
             "  -k <k>         equihash k param (only supported value is 9)\n"
@@ -998,12 +998,12 @@ int main(int argc, char **argv)
                 verbose += 1;
                 break ;
             case OPT_INPUTHEADER:
-		hex_header = optarg;
-		show_encoded = 1;
+    hex_header = optarg;
+    show_encoded = 1;
                 break ;
-	    case OPT_NONCES:
-		nr_nonces = parse_num(optarg);
-		break ;
+      case OPT_NONCES:
+    nr_nonces = parse_num(optarg);
+    break ;
             case OPT_THREADS:
                 // ignored, this is just to conform to the contest CLI API
                 break ;
@@ -1015,12 +1015,12 @@ int main(int argc, char **argv)
                 if (PARAM_K != parse_num(optarg))
                     fatal("Unsupported k (must be %d)\n", PARAM_K);
                 break ;
-	    case OPT_LIST_GPU:
-		do_list_gpu = 1;
-		break ;
-	    case OPT_USE:
-		gpu_to_use = parse_num(optarg);
-		break ;
+      case OPT_LIST_GPU:
+    do_list_gpu = 1;
+    break ;
+      case OPT_USE:
+    gpu_to_use = parse_num(optarg);
+    break ;
             default:
                 fatal("Try '%s --help'\n", argv[0]);
                 break ;
